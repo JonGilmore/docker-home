@@ -1,0 +1,198 @@
+version: "3.9"
+
+volumes:
+  music:
+    driver: local
+    driver_opts:
+      type: cifs
+      device: //192.168.30.242/music-hdd
+      o: "credentials=/opt/.cifs,vers=3.0"
+  frigate:
+    driver_opts:
+      type: nfs
+      o: "addr=192.168.30.242,nfsvers=4.1,nolock,soft,rw"
+      device: ":/volume1/NetBackup/media"
+
+services:
+  #####################################################
+  portainer:
+    image: portainer/portainer-ce:2.18.2
+    container_name: portainer
+    restart: always
+    ports:
+      - "9000:9000/tcp"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/portainer:/data
+    environment:
+      - TZ=America/Chicago
+  #####################################################
+  mosquitto:
+    image: eclipse-mosquitto:2.0.15
+    container_name: mosquitto
+    restart: always
+    ports:
+      - 1883:1883
+      - 9001:9001
+    volumes:
+      - /opt/mosquitto:/mosquitto
+      - /opt/mosquitto/data:/mosquitto/data
+      - /opt/mosquitto/log:/mosquitto/log
+    depends_on:
+      - portainer
+  #####################################################
+  homeassistant:
+    image: "ghcr.io/home-assistant/home-assistant:2023.6"
+    container_name: homeassistant
+    restart: always
+    volumes:
+      - /opt/homeassistant/config:/config
+      - /opt/homeassistant/tmp:/tmp
+      - /opt/homeassistant/share:/share
+      - /etc/localtime:/etc/localtime:ro
+      - music:/media
+    privileged: true
+    network_mode: host
+    depends_on:
+      - mosquitto
+  #####################################################
+  infinitude:
+    image: nebulous/infinitude:latest
+    container_name: infinitude
+    restart: always
+    ports:
+      - 3000:3000
+    volumes:
+      - /opt/infinitude/state:/infinitude/state
+    environment:
+      - APP_SECRET=Pogotudinal
+      - PASS_REQS=3000
+      - MODE=Production
+    hostname: infinitude
+    build:
+      context: .
+      dockerfile: Dockerfile
+    network_mode: host
+    depends_on:
+      - mosquitto
+  #####################################################
+  nut:
+    image: instantlinux/nut-upsd:2.8.0-r4
+    container_name: nut
+    restart: always
+    ports:
+      - 3493:3493
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    privileged: true
+    env_file:
+      - ./.env
+  #####################################################
+  cloudflared:
+    image: cloudflare/cloudflared:2023.5.0
+    container_name: cloudflared
+    restart: always
+    network_mode: host
+    command: tunnel run
+    env_file:
+      - ./.env
+  #####################################################
+  tailscale:
+    image: tailscale/tailscale:v1.40.1
+    container_name: tailscale
+    restart: always
+    hostname: tailscale
+    volumes:
+      - /opt/tailscale:/var/lib
+      - /dev/net/tun:/dev/net/tun
+    privileged: true
+    cap_add:
+      - net_admin
+      - sys_module
+    command: tailscaled
+    env_file:
+      - ./.env
+  #####################################################
+  frigate:
+    container_name: frigate
+    restart: always
+    network_mode: bridge
+    privileged: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    image: ghcr.io/blakeblackshear/frigate:0.12.0
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /opt/frigate:/config
+      - frigate:/media/frigate
+      - type: tmpfs
+        target: /tmp/cache
+        tmpfs:
+          size: 1000000000
+      - type: tmpfs
+        target: /dev/shm
+        tmpfs:
+          size: 1000000000
+    ports:
+      - "5005:5000"
+      - "8554:8554"
+      - "8555:8555"
+    env_file:
+      - ./.env
+    depends_on:
+      - mosquitto
+  #####################################################
+  legocerthub:
+    container_name: legocerthub
+    restart: always
+    image: gregtwallace/legocerthub:v0.9.0
+    volumes:
+      - /opt/legocerthub:/app/data
+    ports:
+      - 4050:4050
+      - 4060:4060
+    env_file:
+      - ./.env
+    depends_on:
+      - mosquitto
+  #####################################################
+  mqdockerup:
+    container_name: mqdockerup
+    image: micrib/mqdockerup:0.16.2
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - MQTT_CONNECTIONURI=mqtt://mosquitto:1883
+    env_file:
+      - ./.env
+    depends_on:
+      - mosquitto
+  #####################################################
+  # bookstack:
+  #   container_name: bookstack
+  #   image: lscr.io/linuxserver/bookstack
+  #   restart: always
+  #   env_file:
+  #     - ./.env-bookstack
+  #   volumes:
+  #     - bookstack:/config
+  #   ports:
+  #     - 6875:80
+  #   depends_on:
+  #     - bookstack_db
+  # bookstack_db:
+  #   container_name: bookstack_db
+  #   image: lscr.io/linuxserver/mariadb
+  #   restart: always
+  #   env_file:
+  #     - ./.env-bookstack
+  #   volumes:
+  #     - bookstack_db:/config
