@@ -12,6 +12,11 @@ volumes:
       type: nfs
       o: "addr=192.168.30.242,nfsvers=4.1,nolock,soft,rw"
       device: ":/volume1/NetBackup/media"
+  plateminder:
+    driver_opts:
+      type: nfs
+      o: "addr=192.168.30.242,nfsvers=4.1,nolock,soft,rw"
+      device: ":/volume1/NetBackup/media/plateminder"
 
 services:
   #####################################################
@@ -42,7 +47,7 @@ services:
       - portainer
   #####################################################
   homeassistant:
-    image: "ghcr.io/home-assistant/home-assistant:2023.6"
+    image: "ghcr.io/home-assistant/home-assistant:2023.6.1"
     container_name: homeassistant
     restart: always
     volumes:
@@ -175,6 +180,29 @@ services:
       - ./.env
     depends_on:
       - mosquitto
+  #####################################################
+  plateminder:
+    container_name: plateminder
+    restart: unless-stopped
+    image: sclaflin/plate-minder:latest
+    ports:
+      - 4000:4000
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - plateminder:/app/data
+      - /opt/plateminder/config.yaml:/app/config.yaml
+  open-alpr-http-wrapper:
+    container_name: open-alpr-http-wrapper
+    restart: unless-stopped
+    image: sclaflin/open-alpr-http-wrapper:latest
+  plate-minder-web:
+    container_name: plate-minder-web
+    image: sclaflin/plate-minder-web:latest
+    restart: unless-stopped
+    environment:
+      - PLATE_MINDER_URL=http://192.168.30.249:4000
+    ports:
+      - 8080:80
   #####################################################
   # bookstack:
   #   container_name: bookstack
