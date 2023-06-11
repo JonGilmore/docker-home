@@ -12,6 +12,11 @@ volumes:
       type: nfs
       o: "addr=192.168.30.242,nfsvers=4.1,nolock,soft,rw"
       device: ":/volume1/NetBackup/media"
+  doubletake:
+    driver_opts:
+      type: nfs
+      o: "addr=192.168.30.242,nfsvers=4.1,nolock,soft,rw"
+      device: ":/volume1/NetBackup/media/doubletake"
   plateminder:
     driver_opts:
       type: nfs
@@ -21,7 +26,7 @@ volumes:
 services:
   #####################################################
   portainer:
-    image: portainer/portainer-ce:2.18.2
+    image: portainer/portainer-ce:2.18.3
     container_name: portainer
     restart: always
     ports:
@@ -47,7 +52,7 @@ services:
       - portainer
   #####################################################
   homeassistant:
-    image: "ghcr.io/home-assistant/home-assistant:2023.6.1"
+    image: "ghcr.io/home-assistant/home-assistant:2023.6.3"
     container_name: homeassistant
     restart: always
     volumes:
@@ -94,7 +99,7 @@ services:
       - ./.env
   #####################################################
   cloudflared:
-    image: cloudflare/cloudflared:2023.5.0
+    image: cloudflare/cloudflared:2023.6.1
     container_name: cloudflared
     restart: always
     network_mode: host
@@ -103,7 +108,7 @@ services:
       - ./.env
   #####################################################
   tailscale:
-    image: tailscale/tailscale:v1.40.1
+    image: tailscale/tailscale:v1.44.0
     container_name: tailscale
     restart: always
     hostname: tailscale
@@ -130,7 +135,7 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-    image: ghcr.io/blakeblackshear/frigate:0.12.0
+    image: ghcr.io/blakeblackshear/frigate:0.12.1
     devices:
       - /dev/bus/usb:/dev/bus/usb
     volumes:
@@ -157,7 +162,7 @@ services:
   legocerthub:
     container_name: legocerthub
     restart: always
-    image: gregtwallace/legocerthub:v0.9.0
+    image: gregtwallace/legocerthub:v0.10.0
     volumes:
       - /opt/legocerthub:/app/data
     ports:
@@ -170,7 +175,7 @@ services:
   #####################################################
   mqdockerup:
     container_name: mqdockerup
-    image: micrib/mqdockerup:0.16.2
+    image: micrib/mqdockerup:0.16.4
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -184,7 +189,7 @@ services:
   plateminder:
     container_name: plateminder
     restart: unless-stopped
-    image: sclaflin/plate-minder:latest
+    image: sclaflin/plate-minder:0.2.1
     ports:
       - 4000:4000
     volumes:
@@ -194,7 +199,7 @@ services:
   open-alpr-http-wrapper:
     container_name: open-alpr-http-wrapper
     restart: unless-stopped
-    image: sclaflin/open-alpr-http-wrapper:latest
+    image: sclaflin/open-alpr-http-wrapper:0.2.0
   plate-minder-web:
     container_name: plate-minder-web
     image: sclaflin/plate-minder-web:latest
@@ -203,6 +208,32 @@ services:
       - PLATE_MINDER_URL=http://192.168.30.249:4000
     ports:
       - 8080:80
+  #####################################################
+  double-take:
+    container_name: doubletake
+    restart: unless-stopped
+    image: skrashevich/double-take:1.13.9
+    volumes:
+      - doubletake:/.storage
+    ports:
+      - 3001:3000
+  #####################################################
+  ai-server:
+    container_name: codeprojectai
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    image: codeproject/ai-server:gpu-2.1.9
+    ports:
+      - 32168:32168
+    volumes:
+      - /opt/codeproject/ai:/etc/codeproject/ai
+      - /opt/codeproject/modules:/app/modules
   #####################################################
   # bookstack:
   #   container_name: bookstack
