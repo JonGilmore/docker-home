@@ -184,7 +184,7 @@ services:
   plateminder:
     container_name: plateminder
     restart: unless-stopped
-    image: sclaflin/plate-minder:latest
+    image: sclaflin/plate-minder:0.2.1
     ports:
       - 4000:4000
     volumes:
@@ -194,7 +194,7 @@ services:
   open-alpr-http-wrapper:
     container_name: open-alpr-http-wrapper
     restart: unless-stopped
-    image: sclaflin/open-alpr-http-wrapper:latest
+    image: sclaflin/open-alpr-http-wrapper:0.2.0
   plate-minder-web:
     container_name: plate-minder-web
     image: sclaflin/plate-minder-web:latest
