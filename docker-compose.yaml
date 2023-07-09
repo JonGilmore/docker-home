@@ -52,7 +52,7 @@ services:
       - portainer
   #####################################################
   homeassistant:
-    image: "ghcr.io/home-assistant/home-assistant:2023.6.3"
+    image: "ghcr.io/home-assistant/home-assistant:2023.7.1"
     container_name: homeassistant
     restart: always
     volumes:
