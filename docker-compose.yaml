@@ -26,7 +26,7 @@ volumes:
 services:
   #####################################################
   portainer:
-    image: portainer/portainer-ce:2.18.3
+    image: portainer/portainer-ce:2.19.1
     container_name: portainer
     restart: always
     ports:
@@ -38,7 +38,7 @@ services:
       - TZ=America/Chicago
   #####################################################
   mosquitto:
-    image: eclipse-mosquitto:2.0.15
+    image: eclipse-mosquitto:2.0.18
     container_name: mosquitto
     restart: always
     ports:
@@ -52,7 +52,7 @@ services:
       - portainer
   #####################################################
   homeassistant:
-    image: "ghcr.io/home-assistant/home-assistant:2023.7.1"
+    image: "ghcr.io/home-assistant/home-assistant:2023.11.2"
     container_name: homeassistant
     restart: always
     volumes:
@@ -99,7 +99,7 @@ services:
       - ./.env
   #####################################################
   cloudflared:
-    image: cloudflare/cloudflared:2023.6.1
+    image: cloudflare/cloudflared:2023.10.0
     container_name: cloudflared
     restart: always
     network_mode: host
@@ -108,7 +108,7 @@ services:
       - ./.env
   #####################################################
   tailscale:
-    image: tailscale/tailscale:v1.44.0
+    image: tailscale/tailscale:v1.52.0
     container_name: tailscale
     restart: always
     hostname: tailscale
@@ -162,7 +162,7 @@ services:
   legocerthub:
     container_name: legocerthub
     restart: always
-    image: gregtwallace/legocerthub:v0.10.0
+    image: gregtwallace/legocerthub:v0.15.1
     volumes:
       - /opt/legocerthub:/app/data
     ports:
@@ -173,23 +173,23 @@ services:
     depends_on:
       - mosquitto
   #####################################################
-  mqdockerup:
-    container_name: mqdockerup
-    image: micrib/mqdockerup:0.16.4
-    restart: always
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - MQTT_CONNECTIONURI=mqtt://mosquitto:1883
-    env_file:
-      - ./.env
-    depends_on:
-      - mosquitto
+  #  mqdockerup:
+  #    container_name: mqdockerup
+  #    image: micrib/mqdockerup:1.2.3
+  #    restart: always
+  #    volumes:
+  #      - /var/run/docker.sock:/var/run/docker.sock
+  #    environment:
+  #      - MQTT_CONNECTIONURI=mqtt://mosquitto:1883
+  #    env_file:
+  #      - ./.env
+  #    depends_on:
+  #      - mosquitto
   #####################################################
   plateminder:
     container_name: plateminder
     restart: unless-stopped
-    image: sclaflin/plate-minder:0.2.1
+    image: sclaflin/plate-minder:0.2.2
     ports:
       - 4000:4000
     volumes:
@@ -212,7 +212,7 @@ services:
   double-take:
     container_name: doubletake
     restart: unless-stopped
-    image: skrashevich/double-take:1.13.9
+    image: skrashevich/double-take:1.13.11.4
     volumes:
       - doubletake:/.storage
     ports:
@@ -228,12 +228,48 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-    image: codeproject/ai-server:gpu-2.1.9
+    image: codeproject/ai-server:gpu-2.2.4
     ports:
       - 32168:32168
     volumes:
       - /opt/codeproject/ai:/etc/codeproject/ai
       - /opt/codeproject/modules:/app/modules
+  #####################################################
+  weatherflow2mqtt:
+    container_name: weatherflow2mqtt
+    image: briis/weatherflow2mqtt:3.2.2
+    restart: unless-stopped
+    network_mode: host
+    env_file:
+      - ./.env-weatherflow
+    volumes:
+      - /opt/weatherflow:/data
+    ports:
+      - 50222:50222/udp
+  #####################################################
+  rtl433:
+    container_name: rtl433
+    image: hertzg/rtl_433:22.11
+    restart: unless-stopped
+    devices:
+      - "/dev/bus/usb/001/004"
+    volumes:
+      - "/opt/rtl433/rtl_433.conf:/opt/rtl433/rtl_433.conf"
+    command:
+      - "-c/opt/rtl433/rtl_433.conf"
+  #####################################################
+  esphome:
+    container_name: esphome
+    image: ghcr.io/esphome/esphome
+    volumes:
+      - /path/to/esphome/config:/config
+      - /etc/localtime:/etc/localtime:ro
+    restart: always
+    privileged: true
+    network_mode: host
+    environment:
+      - USERNAME=test
+      - PASSWORD=ChangeMe
   #####################################################
   # bookstack:
   #   container_name: bookstack
