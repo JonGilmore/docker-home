@@ -108,7 +108,7 @@ services:
       - ./.env
   #####################################################
   tailscale:
-    image: tailscale/tailscale:v1.52.0
+    image: tailscale/tailscale:v1.54.0
     container_name: tailscale
     restart: always
     hostname: tailscale
@@ -212,7 +212,7 @@ services:
   double-take:
     container_name: doubletake
     restart: unless-stopped
-    image: skrashevich/double-take:1.13.11.4
+    image: skrashevich/double-take:1.13.11.8
     volumes:
       - doubletake:/.storage
     ports:
