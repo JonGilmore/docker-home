@@ -52,7 +52,7 @@ services:
       - portainer
   #####################################################
   homeassistant:
-    image: "ghcr.io/home-assistant/home-assistant:2023.11.2"
+    image: "ghcr.io/home-assistant/home-assistant:2023.11.3"
     container_name: homeassistant
     restart: always
     volumes:
@@ -135,7 +135,7 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-    image: ghcr.io/blakeblackshear/frigate:0.12.1
+    image: ghcr.io/blakeblackshear/frigate:0.13.0-beta6
     devices:
       - /dev/bus/usb:/dev/bus/usb
     volumes:
