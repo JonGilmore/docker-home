@@ -22,11 +22,16 @@ volumes:
       type: nfs
       o: "addr=192.168.30.242,nfsvers=4.1,nolock,soft,rw"
       device: ":/volume1/NetBackup/media/plateminder"
+  frigate_plate:
+    driver_opts:
+      type: nfs
+      o: "addr=192.168.30.242,nfsvers=4.1,nolock,soft,rw"
+      device: ":/volume1/NetBackup/media/frigate_plate"
 
 services:
   #####################################################
   portainer:
-    image: portainer/portainer-ce:2.19.1
+    image: portainer/portainer-ce:2.19.4
     container_name: portainer
     restart: always
     ports:
@@ -52,7 +57,7 @@ services:
       - portainer
   #####################################################
   homeassistant:
-    image: "ghcr.io/home-assistant/home-assistant:2024.1.5"
+    image: "ghcr.io/home-assistant/home-assistant:2024.4.3"
     container_name: homeassistant
     restart: always
     volumes:
@@ -87,7 +92,7 @@ services:
       - mosquitto
   #####################################################
   nut:
-    image: instantlinux/nut-upsd:2.8.0-r4
+    image: instantlinux/nut-upsd:2.8.1-r0
     container_name: nut
     restart: always
     ports:
@@ -99,7 +104,7 @@ services:
       - ./.env
   #####################################################
   cloudflared:
-    image: cloudflare/cloudflared:2023.10.0
+    image: cloudflare/cloudflared:2024.2.1
     container_name: cloudflared
     restart: always
     network_mode: host
@@ -108,7 +113,7 @@ services:
       - ./.env
   #####################################################
   tailscale:
-    image: tailscale/tailscale:v1.54.0
+    image: tailscale/tailscale:v1.60.1
     container_name: tailscale
     restart: always
     hostname: tailscale
@@ -135,7 +140,7 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-    image: ghcr.io/blakeblackshear/frigate:0.13.0-rc1
+    image: ghcr.io/blakeblackshear/frigate:0.13.2
     devices:
       - /dev/bus/usb:/dev/bus/usb
     volumes:
@@ -160,10 +165,19 @@ services:
     depends_on:
       - mosquitto
   #####################################################
+  frigate_plate:
+    image: lmerza/frigate_plate_recognizer:1.8.14
+    container_name: frigate_plate
+    volumes:
+      - frigate_plate:/config
+    restart: unless-stopped
+    environment:
+      - TZ=America/Chicago
+  #####################################################
   legocerthub:
     container_name: legocerthub
     restart: always
-    image: gregtwallace/legocerthub:v0.15.1
+    image: gregtwallace/legocerthub:v0.20.3
     volumes:
       - /opt/legocerthub:/app/data
     ports:
@@ -187,28 +201,28 @@ services:
   #    depends_on:
   #      - mosquitto
   #####################################################
-  plateminder:
-    container_name: plateminder
-    restart: unless-stopped
-    image: sclaflin/plate-minder:0.2.2
-    ports:
-      - 4000:4000
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - plateminder:/app/data
-      - /opt/plateminder/config.yaml:/app/config.yaml
-  open-alpr-http-wrapper:
-    container_name: open-alpr-http-wrapper
-    restart: unless-stopped
-    image: sclaflin/open-alpr-http-wrapper:0.2.0
-  plate-minder-web:
-    container_name: plate-minder-web
-    image: sclaflin/plate-minder-web:latest
-    restart: unless-stopped
-    environment:
-      - PLATE_MINDER_URL=http://192.168.30.249:4000
-    ports:
-      - 8080:80
+#  plateminder:
+#    container_name: plateminder
+#    restart: unless-stopped
+#    image: sclaflin/plate-minder:0.2.2
+#    ports:
+#      - 4000:4000
+#    volumes:
+#      - /etc/localtime:/etc/localtime:ro
+#      - plateminder:/app/data
+#      - /opt/plateminder/config.yaml:/app/config.yaml
+#  open-alpr-http-wrapper:
+#    container_name: open-alpr-http-wrapper
+#    restart: unless-stopped
+#    image: sclaflin/open-alpr-http-wrapper:0.2.0
+#  plate-minder-web:
+#    container_name: plate-minder-web
+#    image: sclaflin/plate-minder-web:latest
+#    restart: unless-stopped
+#    environment:
+#      - PLATE_MINDER_URL=http://192.168.30.249:4000
+#    ports:
+#      - 8080:80
   #####################################################
   double-take:
     container_name: doubletake
@@ -229,7 +243,7 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-    image: codeproject/ai-server:gpu-2.2.4
+    image: codeproject/ai-server:cuda11_7-2.5.6
     ports:
       - 32168:32168
     volumes:
@@ -250,7 +264,7 @@ services:
   #####################################################
   rtl433:
     container_name: rtl433
-    image: hertzg/rtl_433:22.11
+    image: hertzg/rtl_433:23.11
     restart: unless-stopped
     devices:
       - "/dev/bus/usb/001/004"
