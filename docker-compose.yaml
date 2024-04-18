@@ -1,5 +1,3 @@
-version: "3.9"
-
 volumes:
   music:
     driver: local
@@ -27,11 +25,16 @@ volumes:
       type: nfs
       o: "addr=192.168.30.242,nfsvers=4.1,nolock,soft,rw"
       device: ":/volume1/NetBackup/media/frigate_plate"
+  frigate_plates:
+    driver_opts:
+      type: nfs
+      o: "addr=192.168.30.242,nfsvers=4.1,nolock,soft,rw"
+      device: ":/volume1/NetBackup/media/frigate_plates"
 
 services:
   #####################################################
   portainer:
-    image: portainer/portainer-ce:2.19.4
+    image: portainer/portainer-ce:2.20.1
     container_name: portainer
     restart: always
     ports:
@@ -170,6 +173,7 @@ services:
     container_name: frigate_plate
     volumes:
       - frigate_plate:/config
+      - frigate_plates:/plates
     restart: unless-stopped
     environment:
       - TZ=America/Chicago
